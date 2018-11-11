@@ -25,44 +25,21 @@
  * This is absent from GCC's builtin atomics, but we can simulate it
  * with CAS.
  */
-static void *atomic_xchg(void **ptr, void *new)
+static __inline__ void *atomic_xchg(void **ptr, void *new)
 {
-#if defined(__i386__) || defined(__x86_64__)
-	void *old = new;
-	__asm__ volatile ("xchg %0, %1\n" /* lock prefix is implicit */
-		      : "+r" (old), "+m" (*ptr)
-		      : : "memory", "cc");
-	return old;
-#else
 	void *old;
-	do
+	do {
 		old = *ptr;
-	while (!cas(ptr, old, new));
+	} while (!cas(ptr, old, new));
 	return old;
-#endif
 }
 
 /* Atomically subtract from a byte in memory, and test the subsequent
  * value, returning zero if it reached zero, and non-zero otherwise.
- *
- * This is similar to GCC's __sync_sub_and_fetch builtin, and we can
- * use that instead.  But on x86, GCC has to use CAS in a loop to
- * implement __sync_sub_and_fetch so that it can provide the previous
- * value.  Because this function only returns a zero/non-zero
- * indication, it can be implemented with a locked sub instruction
- * instead.
  */
-static int atomic_sub_and_test(uint8_t *ptr, uint8_t x)
+static __inline__ int atomic_sub_and_test(uint8_t *ptr, uint8_t x)
 {
-#if defined(__i386__) || defined(__x86_64__)
-	uint8_t res;
-        __asm__ volatile ("lock subb %2,%0; setne %1"
-			  : "+m" (*ptr), "=qm" (res)
-			  : "ir" (x) : "memory");
-	return res;
-#else
 	return __sync_sub_and_fetch(ptr, x);
-#endif
 }
 
 /* The function says how to behave when we encounter an error while

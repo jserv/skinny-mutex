@@ -87,5 +87,3 @@ be of marginal usefulness and/or hard to implement.
 ## Portability
 
 The code uses gcc's atomic built-ins, so should be widely portable.
-There are a few uses of x86 inline assembly where this results in
-better code, but it will fall back to the built-ins for other targets.
