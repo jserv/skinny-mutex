@@ -42,6 +42,31 @@ typedef skinny_mutex_t mutex_t;
 
 #elif defined(PERF_spinlock)
 
+#ifdef __APPLE__
+typedef int pthread_spinlock_t;
+
+static int pthread_spin_init(pthread_spinlock_t *lock, int pshared) {
+    __asm__ __volatile__ ("" ::: "memory");
+    *lock = 0;
+    return 0;
+}
+
+static int pthread_spin_destroy(pthread_spinlock_t *lock) { return 0; }
+
+static int pthread_spin_lock(pthread_spinlock_t *lock) {
+    while (1) {
+        if (__sync_bool_compare_and_swap(lock, 0, 1)) return 0;
+	sched_yield();
+    }
+}
+
+static int pthread_spin_unlock(pthread_spinlock_t *lock) {
+    __asm__ __volatile__ ("" ::: "memory");
+    *lock = 0;
+    return 0;
+}
+#endif
+
 typedef pthread_spinlock_t mutex_t;
 
 static int mutex_init(mutex_t *mutex)
